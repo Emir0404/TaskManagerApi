@@ -38,13 +38,16 @@ public class ApiClient(HttpClient http, IJSRuntime js)
         AuthChanged?.Invoke();
     }
 
-    public async Task<PagedResult<TaskItem>> GetTasksAsync(TaskStatus? status, string? search, int page, int pageSize)
+    public async Task<PagedResult<TaskItem>> GetTasksAsync(
+        TaskStatus? status, string? search, int page, int pageSize, bool deleted = false)
     {
-        var query = $"api/tasks?page={page}&pageSize={pageSize}";
+        var query = $"api/tasks?page={page}&pageSize={pageSize}&deleted={(deleted ? "true" : "false")}";
         if (status is not null) query += $"&status={status}";
         if (!string.IsNullOrWhiteSpace(search)) query += $"&search={Uri.EscapeDataString(search)}";
         return await SendAsync<PagedResult<TaskItem>>(HttpMethod.Get, query);
     }
+
+    public Task<TaskStats> GetStatsAsync() => SendAsync<TaskStats>(HttpMethod.Get, "api/tasks/stats");
 
     public Task<TaskItem> CreateTaskAsync(CreateTaskRequest request) =>
         SendAsync<TaskItem>(HttpMethod.Post, "api/tasks", request);
@@ -52,7 +55,14 @@ public class ApiClient(HttpClient http, IJSRuntime js)
     public Task<TaskItem> UpdateTaskAsync(int id, UpdateTaskRequest request) =>
         SendAsync<TaskItem>(HttpMethod.Put, $"api/tasks/{id}", request);
 
-    public async Task DeleteTaskAsync(int id) => await SendAsync<object>(HttpMethod.Delete, $"api/tasks/{id}");
+    public async Task DeleteTaskAsync(int id, string? reason) =>
+        await SendAsync<object>(HttpMethod.Delete, $"api/tasks/{id}", new { reason });
+
+    public Task<TaskItem> RestoreTaskAsync(int id) =>
+        SendAsync<TaskItem>(HttpMethod.Post, $"api/tasks/{id}/restore");
+
+    public async Task DeletePermanentlyAsync(int id) =>
+        await SendAsync<object>(HttpMethod.Delete, $"api/tasks/{id}/permanent");
 
     private async Task AuthenticateAsync(string action, string email, string password)
     {

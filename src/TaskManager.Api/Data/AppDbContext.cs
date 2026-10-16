@@ -20,6 +20,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.Property(t => t.Title).HasMaxLength(200);
             e.Property(t => t.Status).HasConversion<string>();
+            e.Property(t => t.DeleteReason).HasMaxLength(500);
+            e.HasIndex(t => new { t.UserId, t.IsDeleted });
             e.HasOne(t => t.User).WithMany(u => u.Tasks).HasForeignKey(t => t.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });

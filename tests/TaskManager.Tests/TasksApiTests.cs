@@ -123,6 +123,85 @@ public class TasksApiTests : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task Delete_IsSoft_AndKeepsReasonInDeletedList()
+    {
+        var client = await AuthenticatedClientAsync();
+        var task = await (await client.PostAsJsonAsync("/api/tasks", new CreateTaskRequest("Cancel meeting", null, null)))
+            .Content.ReadFromJsonAsync<TaskResponse>();
+
+        var delete = new HttpRequestMessage(HttpMethod.Delete, $"/api/tasks/{task!.Id}")
+        {
+            Content = JsonContent.Create(new DeleteTaskRequest("Meeting was cancelled"))
+        };
+        Assert.Equal(HttpStatusCode.NoContent, (await client.SendAsync(delete)).StatusCode);
+
+        var active = await client.GetFromJsonAsync<PagedResult<TaskResponse>>("/api/tasks");
+        Assert.Empty(active!.Items);
+
+        var deleted = await client.GetFromJsonAsync<PagedResult<TaskResponse>>("/api/tasks?deleted=true");
+        var item = Assert.Single(deleted!.Items);
+        Assert.Equal("Meeting was cancelled", item.DeleteReason);
+        Assert.NotNull(item.DeletedAt);
+    }
+
+    [Fact]
+    public async Task Restore_MovesTaskBackToActive()
+    {
+        var client = await AuthenticatedClientAsync();
+        var task = await (await client.PostAsJsonAsync("/api/tasks", new CreateTaskRequest("Oops", null, null)))
+            .Content.ReadFromJsonAsync<TaskResponse>();
+        await client.DeleteAsync($"/api/tasks/{task!.Id}");
+
+        var restored = await client.PostAsync($"/api/tasks/{task.Id}/restore", null);
+        restored.EnsureSuccessStatusCode();
+        var body = await restored.Content.ReadFromJsonAsync<TaskResponse>();
+        Assert.Null(body!.DeletedAt);
+        Assert.Null(body.DeleteReason);
+
+        var active = await client.GetFromJsonAsync<PagedResult<TaskResponse>>("/api/tasks");
+        Assert.Single(active!.Items);
+    }
+
+    [Fact]
+    public async Task PermanentDelete_OnlyWorksForDeletedTasks()
+    {
+        var client = await AuthenticatedClientAsync();
+        var task = await (await client.PostAsJsonAsync("/api/tasks", new CreateTaskRequest("Temp", null, null)))
+            .Content.ReadFromJsonAsync<TaskResponse>();
+
+        Assert.Equal(HttpStatusCode.NotFound, (await client.DeleteAsync($"/api/tasks/{task!.Id}/permanent")).StatusCode);
+
+        await client.DeleteAsync($"/api/tasks/{task.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"/api/tasks/{task.Id}/permanent")).StatusCode);
+
+        var deleted = await client.GetFromJsonAsync<PagedResult<TaskResponse>>("/api/tasks?deleted=true");
+        Assert.Empty(deleted!.Items);
+    }
+
+    [Fact]
+    public async Task Stats_CountsStatusesOverdueAndDeleted()
+    {
+        var client = await AuthenticatedClientAsync();
+        var yesterday = DateTime.UtcNow.AddDays(-2);
+
+        await client.PostAsJsonAsync("/api/tasks", new CreateTaskRequest("Late", null, yesterday));
+        var doneTask = await (await client.PostAsJsonAsync("/api/tasks", new CreateTaskRequest("Finished", null, yesterday)))
+            .Content.ReadFromJsonAsync<TaskResponse>();
+        await client.PutAsJsonAsync($"/api/tasks/{doneTask!.Id}",
+            new UpdateTaskRequest("Finished", null, TaskManager.Api.Models.TaskStatus.Done, yesterday));
+        var removed = await (await client.PostAsJsonAsync("/api/tasks", new CreateTaskRequest("Gone", null, null)))
+            .Content.ReadFromJsonAsync<TaskResponse>();
+        await client.DeleteAsync($"/api/tasks/{removed!.Id}");
+
+        var stats = await client.GetFromJsonAsync<TaskStats>("/api/tasks/stats");
+        Assert.Equal(2, stats!.Total);
+        Assert.Equal(1, stats.Todo);
+        Assert.Equal(1, stats.Done);
+        Assert.Equal(1, stats.Overdue);
+        Assert.Equal(1, stats.Deleted);
+    }
+
+    [Fact]
     public async Task GetAll_FiltersByStatusAndPaginates()
     {
         var client = await AuthenticatedClientAsync();

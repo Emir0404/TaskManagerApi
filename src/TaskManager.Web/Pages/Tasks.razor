@@ -6,26 +6,69 @@
 <PageTitle>My tasks - Task Manager</PageTitle>
 
 <h1>My tasks</h1>
-<p class="subtitle">
-    @(_result is null ? "Stay on top of what matters." : $"{_result.TotalCount} task{(_result.TotalCount == 1 ? "" : "s")} - stay on top of what matters.")
-</p>
+<p class="subtitle">@Greeting</p>
 
-<div class="card">
-    <form class="add-form" @onsubmit="AddTask">
-        <input class="input" placeholder="What needs to be done?" @bind="_newTitle" @bind:event="oninput" maxlength="200" />
-        <input class="input" type="date" @bind="_newDue" title="Due date (optional)" />
-        <button class="btn btn-primary" disabled="@(string.IsNullOrWhiteSpace(_newTitle) || _busy)">Add</button>
-    </form>
+@if (_stats is not null)
+{
+    <section class="stats" aria-label="Task statistics">
+        <div class="stat stat-todo">
+            <span class="stat-num">@_stats.Todo</span>
+            <span class="stat-label">To do</span>
+        </div>
+        <div class="stat stat-progress">
+            <span class="stat-num">@_stats.InProgress</span>
+            <span class="stat-label">In progress</span>
+        </div>
+        <div class="stat stat-done">
+            <span class="stat-num">@_stats.Done</span>
+            <span class="stat-label">Done</span>
+        </div>
+        <div class="stat stat-overdue">
+            <span class="stat-num">@_stats.Overdue</span>
+            <span class="stat-label">Overdue</span>
+        </div>
+    </section>
+
+    <div class="progress-wrap">
+        <div class="progress-meta">
+            <span>Overall progress</span>
+            <strong>@Percent%</strong>
+        </div>
+        <div class="progress"><div class="progress-bar" style="width:@Percent%"></div></div>
+    </div>
+}
+
+<div class="tabs" role="tablist">
+    <button role="tab" aria-selected="@(!_showDeleted)" class="tab @(!_showDeleted ? "active" : "")" @onclick="() => SwitchTab(false)">
+        Active <span class="badge">@(_stats?.Total ?? 0)</span>
+    </button>
+    <button role="tab" aria-selected="@_showDeleted" class="tab @(_showDeleted ? "active" : "")" @onclick="() => SwitchTab(true)">
+        Deleted <span class="badge">@(_stats?.Deleted ?? 0)</span>
+    </button>
 </div>
 
-<div class="filters">
+@if (!_showDeleted)
+{
+    <div class="card">
+        <form class="add-form" @onsubmit="AddTask">
+            <input class="input" placeholder="What needs to be done?" @bind="_newTitle" @bind:event="oninput" maxlength="200" />
+            <input class="input" type="date" @bind="_newDue" title="Due date (optional)" />
+            <button class="btn btn-primary" disabled="@(string.IsNullOrWhiteSpace(_newTitle) || _busy)">Add task</button>
+        </form>
+    </div>
+}
+
+<div class="filters @(_showDeleted ? "single" : "")">
     <input class="input" placeholder="Search..." value="@_search" @onchange="OnSearchChanged" />
-    <select class="input" value="@_filter" @onchange="OnFilterChanged">
-        <option value="">All statuses</option>
-        <option value="@TaskStatus.Todo">To do</option>
-        <option value="@TaskStatus.InProgress">In progress</option>
-        <option value="@TaskStatus.Done">Done</option>
-    </select>
+    @if (!_showDeleted)
+    {
+        <select class="input" value="@_filter" @onchange="OnFilterChanged">
+            <option value="">All statuses</option>
+            <option value="@TaskStatus.Todo">To do</option>
+            <option value="@TaskStatus.InProgress">In progress</option>
+            <option value="@TaskStatus.Done">Done</option>
+        </select>
+    }
 </div>
 
 @if (_error is not null)
@@ -40,8 +83,18 @@
 else if (_result is null || _result.Items.Count == 0)
 {
     <div class="empty">
-        <span class="big">&#128203;</span>
-        No tasks found. Add your first one above!
+        @if (_showDeleted)
+        {
+            <span class="big">&#128465;</span>
+            <strong>Nothing deleted</strong>
+            <p>Deleted tasks end up here together with the reason you gave, so you can always restore them.</p>
+        }
+        else
+        {
+            <span class="big">&#128203;</span>
+            <strong>No tasks found</strong>
+            <p>Add your first one above!</p>
+        }
     </div>
 }
 else
@@ -49,24 +102,48 @@ else
     <ul class="task-list">
         @foreach (var task in _result.Items)
         {
-            <li class="task @(task.Status == TaskStatus.Done ? "done" : "")" @key="task.Id">
-                <button class="check" title="@(task.Status == TaskStatus.Done ? "Mark as to do" : "Mark as done")"
-                        @onclick="() => ToggleDone(task)">&#10003;</button>
-                <div class="task-main">
-                    <span class="task-title">@task.Title</span>
-                    @if (task.DueDate is not null)
-                    {
-                        <span class="due @(IsOverdue(task) ? "overdue" : "")">Due @task.DueDate.Value.ToString("dd MMM yyyy")</span>
-                    }
-                </div>
-                <select class="input status status-@task.Status.ToString().ToLower()" value="@task.Status"
-                        @onchange="e => ChangeStatus(task, e.Value?.ToString())">
-                    <option value="@TaskStatus.Todo">To do</option>
-                    <option value="@TaskStatus.InProgress">In progress</option>
-                    <option value="@TaskStatus.Done">Done</option>
-                </select>
-                <button class="icon-btn" title="Delete" @onclick="() => Delete(task)">&times;</button>
-            </li>
+            @if (_showDeleted)
+            {
+                <li class="task deleted" @key="task.Id">
+                    <div class="task-main">
+                        <span class="task-title">@task.Title</span>
+                        <span class="due">Deleted @FormatWhen(task.DeletedAt)</span>
+                        @if (!string.IsNullOrWhiteSpace(task.DeleteReason))
+                        {
+                            <blockquote class="reason"><span>Reason</span>@task.DeleteReason</blockquote>
+                        }
+                        else
+                        {
+                            <span class="due">No reason given</span>
+                        }
+                    </div>
+                    <div class="deleted-actions">
+                        <button class="btn btn-ghost" @onclick="() => Restore(task)">&#8634; Restore</button>
+                        <button class="btn btn-danger-ghost" @onclick="() => OpenModal(task, ModalMode.Forever)">Delete forever</button>
+                    </div>
+                </li>
+            }
+            else
+            {
+                <li class="task @(task.Status == TaskStatus.Done ? "done" : "")" @key="task.Id">
+                    <button class="check" title="@(task.Status == TaskStatus.Done ? "Mark as to do" : "Mark as done")"
+                            @onclick="() => ToggleDone(task)">&#10003;</button>
+                    <div class="task-main">
+                        <span class="task-title">@task.Title</span>
+                        @if (task.DueDate is not null)
+                        {
+                            <span class="due @(IsOverdue(task) ? "overdue" : "")">Due @task.DueDate.Value.ToString("dd MMM yyyy")</span>
+                        }
+                    </div>
+                    <select class="input status status-@task.Status.ToString().ToLower()" value="@task.Status"
+                            @onchange="e => ChangeStatus(task, e.Value?.ToString())">
+                        <option value="@TaskStatus.Todo">To do</option>
+                        <option value="@TaskStatus.InProgress">In progress</option>
+                        <option value="@TaskStatus.Done">Done</option>
+                    </select>
+                    <button class="icon-btn" title="Delete" @onclick="() => OpenModal(task, ModalMode.Delete)">&#128465;</button>
+                </li>
+            }
         }
     </ul>
 
@@ -77,20 +154,109 @@ else
     </div>
 }
 
+@if (_modalTask is not null)
+{
+    <div class="overlay" @onclick="CloseModal">
+        <div class="modal" role="dialog" aria-modal="true" tabindex="-1" @ref="_modalBox"
+             @onclick:stopPropagation="true" @onkeydown="OnModalKey">
+            @if (_modalMode == ModalMode.Delete)
+            {
+                <div class="modal-icon">&#128465;</div>
+                <h2>Delete this task?</h2>
+                <p class="modal-task">&ldquo;@_modalTask.Title&rdquo;</p>
+                <p class="muted">It will move to the <strong>Deleted</strong> tab, so you can restore it later. Tell us why you are removing it:</p>
+
+                <div class="chips">
+                    @foreach (var chip in ReasonChips)
+                    {
+                        <button type="button" class="chip @(_reason == chip ? "active" : "")" @onclick="() => _reason = chip">@chip</button>
+                    }
+                </div>
+
+                <textarea class="input" rows="3" maxlength="500" placeholder="Reason for deleting..." @ref="_reasonInput"
+                          @bind="_reason" @bind:event="oninput"></textarea>
+                <div class="counter">@_reason.Length / 500</div>
+
+                <div class="modal-actions">
+                    <button class="btn btn-ghost" @onclick="CloseModal">Cancel</button>
+                    <button class="btn btn-danger" disabled="@(string.IsNullOrWhiteSpace(_reason) || _modalBusy)" @onclick="ConfirmModal">
+                        @(_modalBusy ? "Deleting..." : "Delete task")
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="modal-icon warn">&#9888;</div>
+                <h2>Delete forever?</h2>
+                <p class="modal-task">&ldquo;@_modalTask.Title&rdquo;</p>
+                <p class="muted">This permanently removes the task and its reason. This cannot be undone.</p>
+
+                <div class="modal-actions">
+                    <button class="btn btn-ghost" @onclick="CloseModal">Keep it</button>
+                    <button class="btn btn-danger" disabled="@_modalBusy" @onclick="ConfirmModal">
+                        @(_modalBusy ? "Deleting..." : "Delete forever")
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@if (_toast is not null)
+{
+    <div class="toast" role="status" @key="_toast.Id">
+        <span>@_toast.Message</span>
+        @if (_toast.UndoId is int undoId)
+        {
+            <button class="toast-btn" @onclick="() => Undo(undoId)">Undo</button>
+        }
+    </div>
+}
+
 @code {
     private const int PageSize = 8;
 
+    private enum ModalMode { Delete, Forever }
+
+    private sealed record Toast(int Id, string Message, int? UndoId);
+
+    private static readonly string[] ReasonChips =
+        ["No longer needed", "Duplicate", "Created by mistake", "Done elsewhere"];
+
     private PagedResult<TaskItem>? _result;
+    private TaskStats? _stats;
     private string _newTitle = "";
     private DateTime? _newDue;
     private string _search = "";
     private string _filter = "";
     private int _page = 1;
+    private bool _showDeleted;
     private bool _loading = true;
     private bool _busy;
     private string? _error;
 
+    private TaskItem? _modalTask;
+    private ModalMode _modalMode;
+    private string _reason = "";
+    private bool _modalBusy;
+    private bool _focusModal;
+    private ElementReference _modalBox;
+    private ElementReference _reasonInput;
+
+    private Toast? _toast;
+    private int _toastCounter;
+
     private int TotalPages => _result is null ? 1 : Math.Max(1, (int)Math.Ceiling(_result.TotalCount / (double)PageSize));
+
+    private int Percent => _stats is { Total: > 0 } s ? (int)Math.Round(s.Done * 100.0 / s.Total) : 0;
+
+    private static string Greeting => DateTime.Now.Hour switch
+    {
+        < 5 => "Burning the midnight oil? Here is what is on your plate.",
+        < 12 => "Good morning! Here is what is on your plate.",
+        < 18 => "Good afternoon! Here is what is on your plate.",
+        _ => "Good evening! Here is what is on your plate."
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -103,24 +269,51 @@ else
         await Load();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_focusModal || _modalTask is null) return;
+        _focusModal = false;
+        try
+        {
+            await (_modalMode == ModalMode.Delete ? _reasonInput : _modalBox).FocusAsync();
+        }
+        catch (InvalidOperationException) { }
+    }
+
     private static bool IsOverdue(TaskItem t) => t.DueDate is { } d && d.Date < DateTime.Today && t.Status != TaskStatus.Done;
+
+    private static string FormatWhen(DateTime? when) =>
+        when is { } w ? w.ToLocalTime().ToString("dd MMM yyyy, HH:mm") : "";
 
     private async Task Load()
     {
         _loading = _result is null;
         await Run(async () =>
         {
-            TaskStatus? status = Enum.TryParse<TaskStatus>(_filter, out var s) ? s : null;
-            _result = await Api.GetTasksAsync(status, _search, _page, PageSize);
+            TaskStatus? status = !_showDeleted && Enum.TryParse<TaskStatus>(_filter, out var s) ? s : null;
+            _result = await Api.GetTasksAsync(status, _search, _page, PageSize, _showDeleted);
 
             // The last page may disappear after a delete or a filter change.
             if (_result.Items.Count == 0 && _page > 1)
             {
                 _page = TotalPages;
-                _result = await Api.GetTasksAsync(status, _search, _page, PageSize);
+                _result = await Api.GetTasksAsync(status, _search, _page, PageSize, _showDeleted);
             }
+
+            _stats = await Api.GetStatsAsync();
         });
         _loading = false;
+    }
+
+    private async Task SwitchTab(bool showDeleted)
+    {
+        if (_showDeleted == showDeleted) return;
+        _showDeleted = showDeleted;
+        _page = 1;
+        _filter = "";
+        _search = "";
+        _result = null;
+        await Load();
     }
 
     private async Task AddTask()
@@ -147,10 +340,85 @@ else
     private Task ToggleDone(TaskItem task) =>
         ChangeStatus(task, (task.Status == TaskStatus.Done ? TaskStatus.Todo : TaskStatus.Done).ToString());
 
-    private async Task Delete(TaskItem task)
+    private void OpenModal(TaskItem task, ModalMode mode)
     {
-        await Run(() => Api.DeleteTaskAsync(task.Id));
+        _modalTask = task;
+        _modalMode = mode;
+        _reason = "";
+        _modalBusy = false;
+        _focusModal = true;
+    }
+
+    private void CloseModal()
+    {
+        if (_modalBusy) return;
+        _modalTask = null;
+    }
+
+    private void OnModalKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") CloseModal();
+    }
+
+    private async Task ConfirmModal()
+    {
+        if (_modalTask is null) return;
+        var task = _modalTask;
+        var mode = _modalMode;
+        _modalBusy = true;
+
+        var ok = true;
+        if (mode == ModalMode.Delete)
+        {
+            if (string.IsNullOrWhiteSpace(_reason)) { _modalBusy = false; return; }
+            ok = await Run(() => Api.DeleteTaskAsync(task.Id, _reason.Trim()));
+        }
+        else
+        {
+            ok = await Run(() => Api.DeletePermanentlyAsync(task.Id));
+        }
+
+        _modalBusy = false;
+        _modalTask = null;
+        if (!ok) return;
+
         await Load();
+        if (mode == ModalMode.Delete) ShowToast("Task moved to Deleted.", task.Id);
+        else ShowToast("Task permanently deleted.");
+    }
+
+    private async Task Restore(TaskItem task)
+    {
+        if (await Run(() => Api.RestoreTaskAsync(task.Id)))
+        {
+            await Load();
+            ShowToast("Task restored.");
+        }
+    }
+
+    private async Task Undo(int taskId)
+    {
+        _toast = null;
+        if (await Run(() => Api.RestoreTaskAsync(taskId)))
+        {
+            await Load();
+            ShowToast("Task restored.");
+        }
+    }
+
+    private void ShowToast(string message, int? undoId = null)
+    {
+        var toast = new Toast(++_toastCounter, message, undoId);
+        _toast = toast;
+        _ = HideToastLater(toast.Id);
+    }
+
+    private async Task HideToastLater(int id)
+    {
+        await Task.Delay(6000);
+        if (_toast?.Id != id) return;
+        _toast = null;
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task OnSearchChanged(ChangeEventArgs e)
@@ -173,17 +441,19 @@ else
         await Load();
     }
 
-    private async Task Run(Func<Task> action)
+    private async Task<bool> Run(Func<Task> action)
     {
         _error = null;
         try
         {
             await action();
+            return true;
         }
         catch (ApiException ex)
         {
             _error = ex.Message;
             if (!Api.IsLoggedIn) Nav.NavigateTo("login");
+            return false;
         }
     }
 }

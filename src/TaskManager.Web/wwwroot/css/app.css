@@ -33,6 +33,9 @@ body {
     background-attachment: fixed;
 }
 
+/* Blazor focuses the <h1> after navigation (accessibility); hide the visual frame. */
+h1:focus, h1:focus-visible { outline: none; }
+
 h1 {
     font-size: 2rem;
     font-weight: 800;
@@ -162,6 +165,7 @@ select.input option { background: #14172b; color: var(--text); }
 /* ---------- add form & filters ---------- */
 .add-form { display: grid; grid-template-columns: 1fr 170px auto; gap: 0.7rem; }
 .filters { display: grid; grid-template-columns: 1fr 190px; gap: 0.7rem; margin-bottom: 1.2rem; }
+.filters.single { grid-template-columns: 1fr; }
 
 /* ---------- task list ---------- */
 .task-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.7rem; }
@@ -224,7 +228,9 @@ select.input option { background: #14172b; color: var(--text); }
     border: 2px dashed var(--border);
     border-radius: var(--radius);
 }
-.empty .big { display: block; font-size: 2.4rem; margin-bottom: 0.5rem; }
+.empty .big { display: block; font-size: 2.6rem; margin-bottom: 0.5rem; }
+.empty strong { display: block; color: var(--text); font-size: 1.05rem; }
+.empty p { margin: 0.4rem auto 0; max-width: 360px; font-size: 0.9rem; }
 
 .alert {
     background: rgba(251, 113, 133, 0.1);
@@ -248,6 +254,217 @@ select.input option { background: #14172b; color: var(--text); }
     .task { grid-template-columns: auto 1fr auto; }
     .task .status { grid-column: 2; justify-self: start; }
     .task .icon-btn { grid-row: 1; grid-column: 3; }
+}
+
+/* ---------- stats & progress ---------- */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; margin-bottom: 1rem; }
+
+.stat {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 1rem 1.1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    animation: fade-up 0.45s ease both;
+}
+.stat::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: var(--tone, var(--muted));
+    box-shadow: 0 0 18px var(--tone, transparent);
+}
+.stat-todo { --tone: #94a3b8; }
+.stat-progress { --tone: var(--warn); }
+.stat-done { --tone: var(--ok); }
+.stat-overdue { --tone: var(--danger); }
+.stat-num { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.03em; color: var(--tone); line-height: 1.1; }
+.stat-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+
+.progress-wrap { margin-bottom: 1.6rem; }
+.progress-meta { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.45rem; }
+.progress-meta strong { color: var(--text); }
+.progress { height: 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.07); overflow: hidden; }
+.progress-bar {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--gradient);
+    box-shadow: 0 0 16px rgba(34, 211, 238, 0.5);
+    transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---------- tabs ---------- */
+.tabs {
+    display: inline-flex;
+    gap: 0.3rem;
+    padding: 0.3rem;
+    margin-bottom: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+.tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1.1rem;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+.tab:hover { color: var(--text); }
+.tab.active { background: var(--gradient); color: #fff; box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4); }
+.badge {
+    min-width: 22px;
+    padding: 0.05rem 0.45rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    font-size: 0.75rem;
+    text-align: center;
+}
+
+/* ---------- deleted tasks ---------- */
+.task.deleted { grid-template-columns: 1fr auto; align-items: start; border-style: dashed; }
+.task.deleted .task-title { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(251, 113, 133, 0.6); }
+.deleted-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end; }
+.deleted-actions .btn { padding: 0.5rem 0.9rem; font-size: 0.85rem; }
+
+.reason {
+    margin: 0.5rem 0 0;
+    padding: 0.55rem 0.8rem;
+    border-left: 3px solid var(--danger);
+    border-radius: 0 10px 10px 0;
+    background: rgba(251, 113, 133, 0.08);
+    font-size: 0.9rem;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+.reason span {
+    display: block;
+    margin-bottom: 0.15rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--danger);
+}
+
+.btn-danger { background: linear-gradient(135deg, #fb7185, #e11d48); color: #fff; box-shadow: 0 8px 24px rgba(225, 29, 72, 0.35); }
+.btn-danger:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(225, 29, 72, 0.5); }
+.btn-danger-ghost { background: transparent; color: var(--danger); border: 1px solid rgba(251, 113, 133, 0.4); }
+.btn-danger-ghost:not(:disabled):hover { background: rgba(251, 113, 133, 0.12); }
+
+/* ---------- modal ---------- */
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(5, 6, 15, 0.7);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    animation: fade-in 0.2s ease both;
+}
+.modal {
+    width: 100%;
+    max-width: 460px;
+    padding: 1.8rem;
+    background: #151933;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(139, 92, 246, 0.15);
+    animation: pop-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.modal:focus { outline: none; }
+.modal h2 { margin: 0.3rem 0 0.2rem; font-size: 1.35rem; letter-spacing: -0.02em; }
+.modal-icon {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    background: rgba(251, 113, 133, 0.12);
+    font-size: 1.5rem;
+}
+.modal-icon.warn { background: rgba(251, 191, 36, 0.12); }
+.modal-task { margin: 0.2rem 0 0.8rem; font-weight: 600; color: var(--accent-2); overflow-wrap: anywhere; }
+.modal textarea.input { resize: vertical; min-height: 84px; }
+.counter { text-align: right; font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 1.2rem; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0.8rem 0; }
+.chip {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.chip:hover { color: var(--text); border-color: var(--accent); }
+.chip.active { color: #fff; border-color: transparent; background: var(--gradient); }
+
+/* ---------- toast ---------- */
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: 1.6rem;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.8rem 1.1rem;
+    transform: translateX(-50%);
+    background: #1d2142;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 16px 50px rgba(0, 0, 0, 0.5);
+    font-weight: 600;
+    animation: toast-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.toast-btn {
+    padding: 0.3rem 0.8rem;
+    border: 0;
+    border-radius: 8px;
+    background: var(--gradient);
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pop-in { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+@media (max-width: 640px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .task.deleted { grid-template-columns: 1fr; }
+    .deleted-actions { justify-content: flex-start; }
+    .modal-actions { flex-direction: column-reverse; }
+    .modal-actions .btn { width: 100%; }
 }
 
 /* ---------- loading & errors ---------- */

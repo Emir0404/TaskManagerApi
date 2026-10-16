@@ -29,10 +29,16 @@ public record TaskResponse(
     string? Description,
     TaskStatus Status,
     DateTime CreatedAt,
-    DateTime? DueDate)
+    DateTime? DueDate,
+    DateTime? DeletedAt,
+    string? DeleteReason)
 {
     public static TaskResponse From(TaskItem t) =>
-        new(t.Id, t.Title, t.Description, t.Status, t.CreatedAt, t.DueDate);
+        new(t.Id, t.Title, t.Description, t.Status, t.CreatedAt, t.DueDate, t.DeletedAt, t.DeleteReason);
 }
+
+public record DeleteTaskRequest([MaxLength(500)] string? Reason);
+
+public record TaskStats(int Total, int Todo, int InProgress, int Done, int Overdue, int Deleted);
 
 public record PagedResult<T>(IReadOnlyList<T> Items, int Page, int PageSize, int TotalCount);

@@ -5,6 +5,7 @@ A RESTful task management API built with **ASP.NET Core (.NET 10)**, **Entity Fr
 ## Features
 - User registration and login (BCrypt password hashing, JWT bearer tokens)
 - Full CRUD for tasks, scoped per user (users can never see each other's data)
+- Soft delete with a recorded reason, a Deleted tab, restore and undo, plus permanent delete
 - Filtering by status, title search and pagination
 - Input validation with proper HTTP status codes
 - EF Core migrations (applied automatically on startup)
@@ -40,7 +41,10 @@ dotnet test
 | GET | `/api/tasks/{id}` | Get a task |
 | POST | `/api/tasks` | Create a task |
 | PUT | `/api/tasks/{id}` | Update a task |
-| DELETE | `/api/tasks/{id}` | Delete a task |
+| GET | `/api/tasks/stats` | Counts per status, overdue and deleted |
+| DELETE | `/api/tasks/{id}` | Soft delete (optional JSON body `{ "reason": "..." }`) |
+| POST | `/api/tasks/{id}/restore` | Restore a soft-deleted task |
+| DELETE | `/api/tasks/{id}/permanent` | Permanently remove a deleted task |
 
 All `/api/tasks` routes require the header `Authorization: Bearer <token>`.
 
