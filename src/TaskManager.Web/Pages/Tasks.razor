@@ -6,6 +6,9 @@
 <PageTitle>My tasks - Task Manager</PageTitle>
 
 <h1>My tasks</h1>
+<p class="subtitle">
+    @(_result is null ? "Stay on top of what matters." : $"{_result.TotalCount} task{(_result.TotalCount == 1 ? "" : "s")} - stay on top of what matters.")
+</p>
 
 <div class="card">
     <form class="add-form" @onsubmit="AddTask">
@@ -36,7 +39,10 @@
 }
 else if (_result is null || _result.Items.Count == 0)
 {
-    <div class="empty">No tasks found. Add your first one above!</div>
+    <div class="empty">
+        <span class="big">&#128203;</span>
+        No tasks found. Add your first one above!
+    </div>
 }
 else
 {
@@ -44,6 +50,8 @@ else
         @foreach (var task in _result.Items)
         {
             <li class="task @(task.Status == TaskStatus.Done ? "done" : "")" @key="task.Id">
+                <button class="check" title="@(task.Status == TaskStatus.Done ? "Mark as to do" : "Mark as done")"
+                        @onclick="() => ToggleDone(task)">&#10003;</button>
                 <div class="task-main">
                     <span class="task-title">@task.Title</span>
                     @if (task.DueDate is not null)
@@ -57,7 +65,7 @@ else
                     <option value="@TaskStatus.InProgress">In progress</option>
                     <option value="@TaskStatus.Done">Done</option>
                 </select>
-                <button class="btn btn-danger" title="Delete" @onclick="() => Delete(task)">&times;</button>
+                <button class="icon-btn" title="Delete" @onclick="() => Delete(task)">&times;</button>
             </li>
         }
     </ul>
@@ -135,6 +143,9 @@ else
         await Run(() => Api.UpdateTaskAsync(task.Id, new UpdateTaskRequest(task.Title, task.Description, status, task.DueDate)));
         await Load();
     }
+
+    private Task ToggleDone(TaskItem task) =>
+        ChangeStatus(task, (task.Status == TaskStatus.Done ? TaskStatus.Todo : TaskStatus.Done).ToString());
 
     private async Task Delete(TaskItem task)
     {

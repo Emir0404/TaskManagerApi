@@ -4,7 +4,7 @@
 @inject NavigationManager Nav
 
 <header class="topbar">
-    <span class="brand">&#10003; Task Manager</span>
+    <span class="brand"><span class="brand-mark">&#10003;</span> Task Manager</span>
     @if (Api.IsLoggedIn)
     {
         <button class="btn btn-ghost" @onclick="Logout">Log out</button>
