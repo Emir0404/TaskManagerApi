@@ -1,0 +1,11 @@
+@page "/"
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await Api.InitAsync();
+        Nav.NavigateTo(Api.IsLoggedIn ? "tasks" : "login", replace: true);
+    }
+}

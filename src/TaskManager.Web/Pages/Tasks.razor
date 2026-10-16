@@ -1,0 +1,178 @@
+@page "/tasks"
+@using TaskStatus = TaskManager.Web.Models.TaskStatus
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>My tasks - Task Manager</PageTitle>
+
+<h1>My tasks</h1>
+
+<div class="card">
+    <form class="add-form" @onsubmit="AddTask">
+        <input class="input" placeholder="What needs to be done?" @bind="_newTitle" @bind:event="oninput" maxlength="200" />
+        <input class="input" type="date" @bind="_newDue" title="Due date (optional)" />
+        <button class="btn btn-primary" disabled="@(string.IsNullOrWhiteSpace(_newTitle) || _busy)">Add</button>
+    </form>
+</div>
+
+<div class="filters">
+    <input class="input" placeholder="Search..." value="@_search" @onchange="OnSearchChanged" />
+    <select class="input" value="@_filter" @onchange="OnFilterChanged">
+        <option value="">All statuses</option>
+        <option value="@TaskStatus.Todo">To do</option>
+        <option value="@TaskStatus.InProgress">In progress</option>
+        <option value="@TaskStatus.Done">Done</option>
+    </select>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert">@_error</div>
+}
+
+@if (_loading)
+{
+    <p class="muted">Loading...</p>
+}
+else if (_result is null || _result.Items.Count == 0)
+{
+    <div class="empty">No tasks found. Add your first one above!</div>
+}
+else
+{
+    <ul class="task-list">
+        @foreach (var task in _result.Items)
+        {
+            <li class="task @(task.Status == TaskStatus.Done ? "done" : "")" @key="task.Id">
+                <div class="task-main">
+                    <span class="task-title">@task.Title</span>
+                    @if (task.DueDate is not null)
+                    {
+                        <span class="due @(IsOverdue(task) ? "overdue" : "")">Due @task.DueDate.Value.ToString("dd MMM yyyy")</span>
+                    }
+                </div>
+                <select class="input status status-@task.Status.ToString().ToLower()" value="@task.Status"
+                        @onchange="e => ChangeStatus(task, e.Value?.ToString())">
+                    <option value="@TaskStatus.Todo">To do</option>
+                    <option value="@TaskStatus.InProgress">In progress</option>
+                    <option value="@TaskStatus.Done">Done</option>
+                </select>
+                <button class="btn btn-danger" title="Delete" @onclick="() => Delete(task)">&times;</button>
+            </li>
+        }
+    </ul>
+
+    <div class="pager">
+        <button class="btn btn-ghost" disabled="@(_page <= 1)" @onclick="() => GoToPage(_page - 1)">&larr; Prev</button>
+        <span class="muted">Page @_page of @TotalPages (@_result.TotalCount tasks)</span>
+        <button class="btn btn-ghost" disabled="@(_page >= TotalPages)" @onclick="() => GoToPage(_page + 1)">Next &rarr;</button>
+    </div>
+}
+
+@code {
+    private const int PageSize = 8;
+
+    private PagedResult<TaskItem>? _result;
+    private string _newTitle = "";
+    private DateTime? _newDue;
+    private string _search = "";
+    private string _filter = "";
+    private int _page = 1;
+    private bool _loading = true;
+    private bool _busy;
+    private string? _error;
+
+    private int TotalPages => _result is null ? 1 : Math.Max(1, (int)Math.Ceiling(_result.TotalCount / (double)PageSize));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Api.InitAsync();
+        if (!Api.IsLoggedIn)
+        {
+            Nav.NavigateTo("login", replace: true);
+            return;
+        }
+        await Load();
+    }
+
+    private static bool IsOverdue(TaskItem t) => t.DueDate is { } d && d.Date < DateTime.Today && t.Status != TaskStatus.Done;
+
+    private async Task Load()
+    {
+        _loading = _result is null;
+        await Run(async () =>
+        {
+            TaskStatus? status = Enum.TryParse<TaskStatus>(_filter, out var s) ? s : null;
+            _result = await Api.GetTasksAsync(status, _search, _page, PageSize);
+
+            // The last page may disappear after a delete or a filter change.
+            if (_result.Items.Count == 0 && _page > 1)
+            {
+                _page = TotalPages;
+                _result = await Api.GetTasksAsync(status, _search, _page, PageSize);
+            }
+        });
+        _loading = false;
+    }
+
+    private async Task AddTask()
+    {
+        _busy = true;
+        await Run(async () =>
+        {
+            await Api.CreateTaskAsync(new CreateTaskRequest(_newTitle.Trim(), null, _newDue));
+            _newTitle = "";
+            _newDue = null;
+            _page = 1;
+        });
+        _busy = false;
+        await Load();
+    }
+
+    private async Task ChangeStatus(TaskItem task, string? value)
+    {
+        if (!Enum.TryParse<TaskStatus>(value, out var status)) return;
+        await Run(() => Api.UpdateTaskAsync(task.Id, new UpdateTaskRequest(task.Title, task.Description, status, task.DueDate)));
+        await Load();
+    }
+
+    private async Task Delete(TaskItem task)
+    {
+        await Run(() => Api.DeleteTaskAsync(task.Id));
+        await Load();
+    }
+
+    private async Task OnSearchChanged(ChangeEventArgs e)
+    {
+        _search = e.Value?.ToString() ?? "";
+        _page = 1;
+        await Load();
+    }
+
+    private async Task OnFilterChanged(ChangeEventArgs e)
+    {
+        _filter = e.Value?.ToString() ?? "";
+        _page = 1;
+        await Load();
+    }
+
+    private async Task GoToPage(int page)
+    {
+        _page = page;
+        await Load();
+    }
+
+    private async Task Run(Func<Task> action)
+    {
+        _error = null;
+        try
+        {
+            await action();
+        }
+        catch (ApiException ex)
+        {
+            _error = ex.Message;
+            if (!Api.IsLoggedIn) Nav.NavigateTo("login");
+        }
+    }
+}

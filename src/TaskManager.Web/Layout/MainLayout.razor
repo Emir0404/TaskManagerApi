@@ -1,0 +1,34 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<header class="topbar">
+    <span class="brand">&#10003; Task Manager</span>
+    @if (Api.IsLoggedIn)
+    {
+        <button class="btn btn-ghost" @onclick="Logout">Log out</button>
+    }
+</header>
+
+<main class="container">
+    @Body
+</main>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await Api.InitAsync();
+        Api.AuthChanged += OnAuthChanged;
+    }
+
+    private void OnAuthChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task Logout()
+    {
+        await Api.LogoutAsync();
+        Nav.NavigateTo("login");
+    }
+
+    public void Dispose() => Api.AuthChanged -= OnAuthChanged;
+}

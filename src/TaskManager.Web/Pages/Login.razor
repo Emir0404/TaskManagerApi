@@ -1,0 +1,85 @@
+@page "/login"
+@using System.ComponentModel.DataAnnotations
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>Log in - Task Manager</PageTitle>
+
+<div class="card auth-card">
+    <h1>@(_registerMode ? "Create account" : "Welcome back")</h1>
+    <p class="muted">@(_registerMode ? "Register to start organizing your tasks." : "Log in to see your tasks.")</p>
+
+    <EditForm Model="_form" OnValidSubmit="Submit" FormName="auth">
+        <DataAnnotationsValidator />
+        <label>Email</label>
+        <InputText type="email" @bind-Value="_form.Email" class="input" autocomplete="email" />
+        <ValidationMessage For="() => _form.Email" />
+
+        <label>Password</label>
+        <InputText type="password" @bind-Value="_form.Password" class="input"
+                   autocomplete="@(_registerMode ? "new-password" : "current-password")" />
+        <ValidationMessage For="() => _form.Password" />
+
+        @if (_error is not null)
+        {
+            <div class="alert">@_error</div>
+        }
+
+        <button class="btn btn-primary full" disabled="@_busy">
+            @(_busy ? "Please wait..." : _registerMode ? "Register" : "Log in")
+        </button>
+    </EditForm>
+
+    <p class="switch">
+        @(_registerMode ? "Already have an account?" : "No account yet?")
+        <a href="" @onclick="Toggle" @onclick:preventDefault>@(_registerMode ? "Log in" : "Register")</a>
+    </p>
+</div>
+
+@code {
+    private readonly AuthForm _form = new();
+    private bool _registerMode;
+    private bool _busy;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Api.InitAsync();
+        if (Api.IsLoggedIn) Nav.NavigateTo("tasks");
+    }
+
+    private void Toggle()
+    {
+        _registerMode = !_registerMode;
+        _error = null;
+    }
+
+    private async Task Submit()
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            if (_registerMode) await Api.RegisterAsync(_form.Email, _form.Password);
+            else await Api.LoginAsync(_form.Email, _form.Password);
+            Nav.NavigateTo("tasks");
+        }
+        catch (ApiException ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private class AuthForm
+    {
+        [Required, EmailAddress]
+        public string Email { get; set; } = "";
+
+        [Required, MinLength(8, ErrorMessage = "Password must be at least 8 characters.")]
+        public string Password { get; set; } = "";
+    }
+}

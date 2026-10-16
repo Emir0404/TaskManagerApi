@@ -11,14 +11,18 @@ A RESTful task management API built with **ASP.NET Core (.NET 10)**, **Entity Fr
 - Interactive API docs (Scalar / OpenAPI) in development
 - Integration tests with xUnit and `WebApplicationFactory`
 
+## Frontend
+A Blazor WebAssembly client (`src/TaskManager.Web`) with login/register, task list, filtering, search, pagination, status changes and dark mode support. The JWT is kept in `localStorage`.
+
 ## Tech stack
-ASP.NET Core Web API · EF Core · SQLite · JWT · BCrypt · xUnit
+ASP.NET Core Web API · EF Core · SQLite · JWT · BCrypt · xUnit · Blazor WebAssembly · CORS
 
 ## Getting started
 ```bash
 git clone <repo-url>
 cd TaskManagerApi
-dotnet run --project src/TaskManager.Api
+dotnet run --project src/TaskManager.Api --launch-profile https   # terminal 1: API on https://localhost:7087
+dotnet run --project src/TaskManager.Web --launch-profile https   # terminal 2: UI on https://localhost:7151
 ```
 Open `https://localhost:<port>/scalar/v1` to explore the API.
 
