@@ -10,7 +10,8 @@ A RESTful task management API built with **ASP.NET Core (.NET 10)**, **Entity Fr
 - Input validation with proper HTTP status codes
 - EF Core migrations (applied automatically on startup)
 - Interactive API docs (Scalar / OpenAPI) in development
-- Integration tests with xUnit and `WebApplicationFactory`
+- Login/registration rate limiting, token validation, startup checks of the configuration (see *Security notes*)
+- 40 integration tests with xUnit and `WebApplicationFactory`, Dockerfile and GitHub Actions CI
 
 ## Frontend
 A Blazor WebAssembly client (`src/TaskManager.Web`) with login/register, task list, filtering, search, pagination, status changes and dark mode support. The JWT is kept in `localStorage`.
@@ -29,7 +30,13 @@ Open `https://localhost:<port>/scalar/v1` to explore the API.
 
 Run the tests:
 ```bash
-dotnet test
+dotnet test        # 40 tests
+```
+
+Run the API in Docker (the Blazor client is a static site and is not part of the image):
+```bash
+docker build -t taskmanager-api .
+docker run -p 8080:8080 -v taskmanager-data:/data \n  -e Jwt__Key='a-long-random-secret-of-at-least-32-characters' \n  -e Cors__AllowedOrigins__0=https://your-client.example taskmanager-api
 ```
 
 ## Endpoints
