@@ -1,5 +1,7 @@
 # Task Manager API
 
+[![CI](https://github.com/Emir0404/TaskManagerApi/actions/workflows/ci.yml/badge.svg)](https://github.com/Emir0404/TaskManagerApi/actions/workflows/ci.yml)
+
 A RESTful task management API built with **ASP.NET Core (.NET 10)**, **Entity Framework Core** and **SQLite**, secured with **JWT authentication**.
 
 ## Screenshots
