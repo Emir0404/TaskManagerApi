@@ -1,5 +1,12 @@
-﻿@page "/not-found"
+@page "/not-found"
 @layout MainLayout
+@inject NavigationManager Nav
 
-<h3>Not Found</h3>
-<p>Sorry, the content you are looking for does not exist.</p>
+<PageTitle>Page not found - Task Manager</PageTitle>
+
+<div class="card auth-card not-found">
+    <p class="not-found-code">404</p>
+    <h1>We could not find that page</h1>
+    <p class="muted">The link may be old or mistyped.</p>
+    <button type="button" class="btn btn-primary full" @onclick='() => Nav.NavigateTo("/")'>Back to my tasks</button>
+</div>

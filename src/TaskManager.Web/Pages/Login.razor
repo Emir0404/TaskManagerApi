@@ -11,12 +11,12 @@
 
     <EditForm Model="_form" OnValidSubmit="Submit" FormName="auth">
         <DataAnnotationsValidator />
-        <label>Email</label>
-        <InputText type="email" @bind-Value="_form.Email" class="input" autocomplete="email" />
+        <label for="auth-email">Email</label>
+        <InputText id="auth-email" type="email" @bind-Value="_form.Email" class="input" autocomplete="email" />
         <ValidationMessage For="() => _form.Email" />
 
-        <label>Password</label>
-        <InputText type="password" @bind-Value="_form.Password" class="input"
+        <label for="auth-password">Password</label>
+        <InputText id="auth-password" type="password" @bind-Value="_form.Password" class="input"
                    autocomplete="@(_registerMode ? "new-password" : "current-password")" />
         <ValidationMessage For="() => _form.Password" />
 
@@ -30,10 +30,10 @@
         </button>
     </EditForm>
 
-    <p class="switch">
-        @(_registerMode ? "Already have an account?" : "No account yet?")
-        <a href="" @onclick="Toggle" @onclick:preventDefault>@(_registerMode ? "Log in" : "Register")</a>
-    </p>
+    <div class="switch">
+        <span>@(_registerMode ? "Already have an account?" : "No account yet?")</span>
+        <button type="button" class="btn btn-ghost" @onclick="Toggle">@(_registerMode ? "Log in instead" : "Create an account")</button>
+    </div>
 </div>
 
 @code {

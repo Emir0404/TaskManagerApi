@@ -51,18 +51,18 @@
 {
     <div class="card">
         <form class="add-form" @onsubmit="AddTask">
-            <input class="input" placeholder="What needs to be done?" @bind="_newTitle" @bind:event="oninput" maxlength="200" />
-            <input class="input" type="date" @bind="_newDue" title="Due date (optional)" />
+            <input class="input" aria-label="New task title" placeholder="What needs to be done?" @bind="_newTitle" @bind:event="oninput" maxlength="200" />
+            <input class="input" type="date" @bind="_newDue" title="Due date (optional)" aria-label="Due date (optional)" />
             <button class="btn btn-primary" disabled="@(string.IsNullOrWhiteSpace(_newTitle) || _busy)">Add task</button>
         </form>
     </div>
 }
 
 <div class="filters @(_showDeleted ? "single" : "")">
-    <input class="input" placeholder="Search..." value="@_search" @onchange="OnSearchChanged" />
+    <input class="input" aria-label="Search tasks" placeholder="Search..." value="@_search" @onchange="OnSearchChanged" />
     @if (!_showDeleted)
     {
-        <select class="input" value="@_filter" @onchange="OnFilterChanged">
+        <select class="input" aria-label="Filter by status" value="@_filter" @onchange="OnFilterChanged">
             <option value="">All statuses</option>
             <option value="@TaskStatus.Todo">To do</option>
             <option value="@TaskStatus.InProgress">In progress</option>
@@ -135,7 +135,7 @@ else
                             <span class="due @(IsOverdue(task) ? "overdue" : "")">Due @task.DueDate.Value.ToString("dd MMM yyyy")</span>
                         }
                     </div>
-                    <select class="input status status-@task.Status.ToString().ToLower()" value="@task.Status"
+                    <select class="input status status-@task.Status.ToString().ToLower()" aria-label="Status of @task.Title" value="@task.Status"
                             @onchange="e => ChangeStatus(task, e.Value?.ToString())">
                         <option value="@TaskStatus.Todo">To do</option>
                         <option value="@TaskStatus.InProgress">In progress</option>

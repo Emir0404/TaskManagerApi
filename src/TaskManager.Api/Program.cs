@@ -8,6 +8,8 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using TaskManager.Api.Data;
+using TaskManager.Api.Data.Repositories;
+using TaskManager.Api.Models;
 using TaskManager.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,6 +29,9 @@ builder.Services.AddOptions<RateLimitSettings>()
 builder.Services.AddDbContext<AppDbContext>(o =>
     o.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=taskmanager.db"));
 
+builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+builder.Services.AddScoped<ITaskRepository, EfTaskRepository>();
+builder.Services.AddScoped<IUserRepository, EfUserRepository>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 
 builder.Services

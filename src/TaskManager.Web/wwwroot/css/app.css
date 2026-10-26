@@ -81,7 +81,7 @@ h1 {
     box-shadow: 0 6px 20px rgba(139, 92, 246, 0.45);
 }
 
-.container { max-width: 760px; margin: 2.5rem auto 4rem; padding: 0 1rem; animation: fade-up 0.5s ease both; }
+.container { max-width: 760px; margin: 2.5rem auto 4rem; padding: 0 1rem; animation: fade-up 0.5s ease backwards; } /* "backwards", not "both": a kept transform would trap the modal under the top bar */
 
 /* ---------- cards ---------- */
 .card {
@@ -99,9 +99,10 @@ h1 {
 .auth-card h1 { font-size: 1.8rem; }
 .auth-card label { display: block; margin: 1.1rem 0 0.4rem; font-size: 0.8rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
 .auth-card .full { width: 100%; margin-top: 1.5rem; padding: 0.8rem; }
-.switch { text-align: center; margin: 1.4rem 0 0; color: var(--muted); font-size: 0.9rem; }
-.switch a { color: var(--accent-2); font-weight: 600; text-decoration: none; }
-.switch a:hover { text-decoration: underline; }
+.switch { display: grid; gap: 0.6rem; text-align: center; margin: 1.6rem 0 0; color: var(--muted); font-size: 0.9rem; }
+.switch .btn { width: 100%; }
+.not-found { text-align: center; }
+.not-found-code { margin: 0; font-size: 4rem; font-weight: 800; letter-spacing: -0.04em; color: var(--muted); }
 
 .muted { color: var(--muted); font-size: 0.9rem; }
 
