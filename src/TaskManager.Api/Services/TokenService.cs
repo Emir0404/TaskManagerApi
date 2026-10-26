@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -9,10 +10,24 @@ namespace TaskManager.Api.Services;
 public class JwtOptions
 {
     public const string Section = "Jwt";
+
+    /// <summary>Secret used to sign tokens. At least 32 characters; set it with user secrets or the Jwt__Key environment variable.</summary>
+    [Required(ErrorMessage = "Jwt:Key is not set. Provide it through user secrets or the Jwt__Key environment variable.")]
+    [MinLength(32, ErrorMessage = "Jwt:Key must be at least 32 characters long.")]
     public string Key { get; set; } = "";
-    public string Issuer { get; set; } = "TaskManager.Api";
-    public string Audience { get; set; } = "TaskManager.Client";
-    public int ExpiresMinutes { get; set; } = 60;
+
+    [Required] public string Issuer { get; set; } = "TaskManager.Api";
+    [Required] public string Audience { get; set; } = "TaskManager.Client";
+    [Range(1, 1440)] public int ExpiresMinutes { get; set; } = 60;
+}
+
+public class RateLimitSettings
+{
+    public const string Section = "RateLimit";
+    public const string AuthPolicy = "auth";
+
+    /// <summary>Login and register attempts allowed per minute from one address.</summary>
+    [Range(1, 10_000)] public int AuthPerMinute { get; set; } = 10;
 }
 
 public interface ITokenService

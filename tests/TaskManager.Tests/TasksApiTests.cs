@@ -14,6 +14,7 @@ public class ApiFactory : WebApplicationFactory<Program>
     {
         builder.UseSetting("ConnectionStrings:Default", $"Data Source={_dbPath}");
         builder.UseSetting("Jwt:Key", "test-secret-key-that-is-at-least-32-characters-long");
+        builder.UseSetting("RateLimit:AuthPerMinute", "10000");   // the many test users must not hit the speed limit
     }
 
     protected override void Dispose(bool disposing)

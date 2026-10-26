@@ -112,6 +112,9 @@ public class ApiClient(HttpClient http, IJSRuntime js)
         {
             var json = await response.Content.ReadFromJsonAsync<JsonElement>();
             if (json.TryGetProperty("error", out var error)) return error.GetString() ?? "Request failed.";
+            // Problem documents (RFC 9457) from the API: login failures, "too many attempts", conflicts
+            if (json.TryGetProperty("detail", out var detail) && detail.ValueKind == JsonValueKind.String)
+                return detail.GetString() ?? "Request failed.";
             if (json.TryGetProperty("errors", out var errors))
             {
                 var first = errors.EnumerateObject().FirstOrDefault().Value;

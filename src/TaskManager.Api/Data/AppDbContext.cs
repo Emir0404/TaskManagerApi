@@ -19,6 +19,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<TaskItem>(e =>
         {
             e.Property(t => t.Title).HasMaxLength(200);
+            e.Property(t => t.Description).HasMaxLength(4000);
             e.Property(t => t.Status).HasConversion<string>();
             e.Property(t => t.DeleteReason).HasMaxLength(500);
             e.HasIndex(t => new { t.UserId, t.IsDeleted });

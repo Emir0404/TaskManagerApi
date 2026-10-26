@@ -25,6 +25,12 @@ public class TasksController(AppDbContext db) : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
+        if (status is { } s && !Enum.IsDefined(s))
+        {
+            ModelState.AddModelError(nameof(status), "Unknown status.");
+            return ValidationProblem(ModelState);
+        }
+
         page = Math.Max(page, 1);
         pageSize = Math.Clamp(pageSize, 1, 100);
 

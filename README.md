@@ -49,4 +49,22 @@ dotnet test
 All `/api/tasks` routes require the header `Authorization: Bearer <token>`.
 
 ## Configuration
-Set `Jwt:Key` (min. 32 characters) via environment variable `Jwt__Key` or user secrets in production. The development key in `appsettings.Development.json` is for local use only.
+| Setting | Default | Meaning |
+|---|---|---|
+| `Jwt:Key` | none (required) | Token signing secret, **at least 32 characters**. Use user secrets or the `Jwt__Key` environment variable. The app **refuses to start** without a valid key, with a clear message. |
+| `RateLimit:AuthPerMinute` | 10 | Login/register attempts per minute per client address |
+| `Cors:AllowedOrigins` | the two local Blazor addresses | Browsers allowed to call the API |
+| `HttpsRedirection` | true | Set to `false` behind a proxy that already terminates https |
+
+The development key in `appsettings.Development.json` is for local use only.
+
+## Security notes
+- Passwords are hashed with BCrypt; passwords over 72 bytes (bcrypt's limit) are refused instead of silently truncated.
+- Login and registration are rate limited (`429` with `Retry-After`). Login takes the same time for an unknown email and a wrong password.
+- Tokens: signature, issuer, audience and lifetime are validated (30 s clock skew). A tampered, expired or foreign token is a `401`.
+- Input is validated: lengths, e-mail format, and the task status must be a real value. Request bodies are capped at 64 KB.
+- Errors are RFC 9457 problem documents; stack traces never reach the client in production.
+- Known trade-offs: registering with an existing e-mail answers `409` (needed for a good sign-up experience, mitigated by the rate limit),
+  and the Blazor demo keeps the JWT in `localStorage`, which a cross-site-scripting bug could read. A production app would use short-lived
+  tokens with refresh tokens in `HttpOnly` cookies.
+- Behind a reverse proxy, forward the client address (`ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`) or the rate limiter sees only the proxy.
