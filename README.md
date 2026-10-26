@@ -1,6 +1,14 @@
-﻿# Task Manager API
+# Task Manager API
 
 A RESTful task management API built with **ASP.NET Core (.NET 10)**, **Entity Framework Core** and **SQLite**, secured with **JWT authentication**.
+
+## Screenshots
+
+The Blazor WebAssembly client: task list with statistics, and the delete dialog (a reason is asked, the task can be restored).
+
+<img src="docs/screenshots/02-tasks.png" alt="Task list" width="49%"> <img src="docs/screenshots/01-login.png" alt="Log in" width="49%">
+
+<img src="docs/screenshots/mobile-02-tasks.png" alt="Task list on a phone" width="24%"> <img src="docs/screenshots/mobile-03-delete-dialog.png" alt="Delete dialog on a phone" width="24%">
 
 ## Features
 - User registration and login (BCrypt password hashing, JWT bearer tokens)
